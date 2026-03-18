@@ -2,7 +2,7 @@ package io.github.beeebea.fastmove.network;
 
 import io.github.beeebea.fastmove.FastMove;
 import io.github.beeebea.fastmove.config.FastMoveConfig;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -28,7 +28,7 @@ public record ConfigStatePayload(
     public static final Type<ConfigStatePayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(FastMove.MOD_ID, "config_state"));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, ConfigStatePayload> STREAM_CODEC = StreamCodec.composite(
+    public static final StreamCodec<ByteBuf, ConfigStatePayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.BOOL, ConfigStatePayload::enableFastMove,
             ByteBufCodecs.BOOL, ConfigStatePayload::diveRollEnabled,
             ByteBufCodecs.VAR_INT, ConfigStatePayload::diveRollStaminaCost,

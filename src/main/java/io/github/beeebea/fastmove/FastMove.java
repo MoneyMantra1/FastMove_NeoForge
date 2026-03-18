@@ -9,9 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
@@ -33,6 +31,7 @@ public class FastMove {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     protected static FastMoveConfig serverConfig = null;
+
     public static FastMoveConfig getConfig() {
         if (serverConfig != null) return serverConfig;
         return CONFIG.getConfig();
@@ -59,24 +58,18 @@ public class FastMove {
         NeoForge.EVENT_BUS.addListener(FastMove::onPlayerLoggedIn);
 
         if (FMLEnvironmentHelper.isClient()) {
-            FastMoveClient.init(modEventBus);
+            io.github.beeebea.fastmove.client.FastMoveClient.init(modEventBus);
         }
     }
 
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar("1");
         registrar.playToServer(MoveStatePayload.TYPE, MoveStatePayload.STREAM_CODEC, FastMove::handleMoveStateServer);
-
-        if (FMLEnvironmentHelper.isClient()) {
-            registrar.playToClient(MoveStatePayload.TYPE, MoveStatePayload.STREAM_CODEC, FastMoveClient::handleMoveStateClient);
-            registrar.playToClient(ConfigStatePayload.TYPE, ConfigStatePayload.STREAM_CODEC, FastMoveClient::handleConfigStateClient);
-        }
     }
 
     private static void handleMoveStateServer(MoveStatePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            var player = context.player();
-            if (!(player instanceof ServerPlayer serverPlayer)) {
+            if (!(context.player() instanceof ServerPlayer serverPlayer)) {
                 return;
             }
 
@@ -100,11 +93,9 @@ public class FastMove {
     }
 
     private static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
-            return;
+        if (event.getEntity() instanceof ServerPlayer player) {
+            PacketDistributor.sendToPlayer(player, ConfigStatePayload.fromConfig(getConfig()));
         }
-
-        PacketDistributor.sendToPlayer(player, ConfigStatePayload.fromConfig(getConfig()));
     }
 
     public static void sendToClients(Player source, MoveStatePayload payload) {

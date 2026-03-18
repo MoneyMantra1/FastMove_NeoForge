@@ -1,17 +1,16 @@
-package io.github.beeebea.fastmove;
+package io.github.beeebea.fastmove.client;
 
 import dev.kosmx.playerAnim.api.layered.KeyframeAnimationPlayer;
 import dev.kosmx.playerAnim.api.layered.modifier.AbstractFadeModifier;
 import dev.kosmx.playerAnim.core.data.KeyframeAnimation;
 import dev.kosmx.playerAnim.core.util.Ease;
 import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationRegistry;
-import io.github.beeebea.fastmove.client.FastMoveInput;
+import io.github.beeebea.fastmove.*;
 import io.github.beeebea.fastmove.config.FastMoveConfig;
 import io.github.beeebea.fastmove.network.ConfigStatePayload;
 import io.github.beeebea.fastmove.network.MoveStatePayload;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
@@ -19,9 +18,10 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.lwjgl.glfw.GLFW;
 
@@ -32,25 +32,19 @@ import java.util.Map;
 public final class FastMoveClient {
     private static final Map<String, KeyframeAnimation> ANIMATIONS = new HashMap<>();
 
-    private static final KeyMapping MOVE_UP_KEY = new KeyMapping(
-            "key.fastmove.up",
-            GLFW.GLFW_KEY_UNKNOWN,
-            "key.categories.movement"
-    );
-    private static final KeyMapping MOVE_DOWN_KEY = new KeyMapping(
-            "key.fastmove.down",
-            GLFW.GLFW_KEY_UNKNOWN,
-            "key.categories.movement"
-    );
+    private static final KeyMapping MOVE_UP_KEY = new KeyMapping("key.fastmove.up", GLFW.GLFW_KEY_UNKNOWN, "key.categories.movement");
+    private static final KeyMapping MOVE_DOWN_KEY = new KeyMapping("key.fastmove.down", GLFW.GLFW_KEY_UNKNOWN, "key.categories.movement");
 
     private static FastMoveInput input;
 
     private FastMoveClient() {
     }
 
-    static void init(IEventBus modBus) {
+    public static void init(IEventBus modBus) {
         FastMove.LOGGER.info("Initializing FastMove client hooks");
+
         modBus.addListener(FastMoveClient::onRegisterKeyMappings);
+        modBus.addListener(FastMoveClient::registerClientPayloads);
 
         input = new FastMoveInput(MOVE_UP_KEY, MOVE_DOWN_KEY);
         FastMove.INPUT = input;
@@ -77,7 +71,8 @@ public final class FastMoveClient {
                     for (var entry : MoveState.STATES.values()) {
                         if ("none".equals(entry.name)) continue;
                         KeyframeAnimation animation = PlayerAnimationRegistry.getAnimation(
-                                ResourceLocation.fromNamespaceAndPath(FastMove.MOD_ID, entry.name));
+                                ResourceLocation.fromNamespaceAndPath(FastMove.MOD_ID, entry.name)
+                        );
                         if (animation != null) {
                             ANIMATIONS.put(entry.name, animation);
                         }
@@ -101,7 +96,13 @@ public final class FastMoveClient {
             }
         };
 
-        FastMove.CONFIG = () -> new FastMoveConfig();
+        FastMove.CONFIG = FastMoveConfig::new;
+    }
+
+    private static void registerClientPayloads(RegisterPayloadHandlersEvent event) {
+        var registrar = event.registrar("1");
+        registrar.playToClient(MoveStatePayload.TYPE, MoveStatePayload.STREAM_CODEC, FastMoveClient::handleMoveStateClient);
+        registrar.playToClient(ConfigStatePayload.TYPE, ConfigStatePayload.STREAM_CODEC, FastMoveClient::handleConfigStateClient);
     }
 
     private static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
@@ -111,7 +112,9 @@ public final class FastMoveClient {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
-        input.onEndTick(Minecraft.getInstance());
+        if (input != null) {
+            input.onEndTick(Minecraft.getInstance());
+        }
     }
 
     @SubscribeEvent
