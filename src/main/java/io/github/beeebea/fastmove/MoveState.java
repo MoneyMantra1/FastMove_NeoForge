@@ -1,6 +1,7 @@
 package io.github.beeebea.fastmove;
 
-import net.minecraft.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityDimensions;
+
 import java.util.Map;
 
 public class MoveState {
@@ -13,7 +14,7 @@ public class MoveState {
     public static final MoveState VAULTING = new MoveState("vaulting", false);
     public static final MoveState PRONE = new MoveState("prone", true);
 
-    public static final Map<Integer,MoveState> STATES = Map.of(
+    public static final Map<Integer, MoveState> STATES = Map.of(
             0, NONE,
             1, SLIDING,
             2, PRONE,
@@ -23,13 +24,13 @@ public class MoveState {
             6, VAULTING
     );
 
-    public static MoveState STATE(int id){
+    public static MoveState STATE(int id) {
         return STATES.getOrDefault(id, NONE);
     }
 
-    public static int STATE(MoveState state){
-        for(Map.Entry<Integer, MoveState> entry : STATES.entrySet()){
-            if(entry.getValue().equals(state)){
+    public static int STATE(MoveState state) {
+        for (Map.Entry<Integer, MoveState> entry : STATES.entrySet()) {
+            if (entry.getValue().equals(state)) {
                 return entry.getKey();
             }
         }
@@ -38,24 +39,20 @@ public class MoveState {
 
     public String name;
     public EntityDimensions dimensions;
-    public MoveState(String name, boolean isSmall){
+
+    public MoveState(String name, boolean isSmall) {
         this.name = name;
-        this.dimensions = EntityDimensions.changing(0.6F, isSmall ? 0.8F : 1.8F);
+        this.dimensions = EntityDimensions.scalable(0.6F, isSmall ? 0.8F : 1.8F);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if(obj instanceof MoveState){
+        if (obj instanceof MoveState) {
             return ((MoveState) obj).name.equals(this.name);
         }
-        if(obj instanceof String){
+        if (obj instanceof String) {
             return ((String) obj).equals(this.name);
         }
-        if(obj == null && this.name.equals("none")){
-            return true;
-        }
-
-        return false;
+        return obj == null && this.name.equals("none");
     }
-
 }

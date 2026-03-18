@@ -1,47 +1,48 @@
 package io.github.beeebea.fastmove.client;
 
 import io.github.beeebea.fastmove.IFastMoveInput;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 
 public class FastMoveInput implements IFastMoveInput {
-    private static KeyBinding moveUpKey =  KeyBindingHelper.registerKeyBinding(new KeyBinding(
-            "key.fastmove.up",
-            InputUtil.Type.KEYSYM,GLFW.GLFW_KEY_UNKNOWN,
-            "key.categories.movement"));
+    private final KeyMapping moveUpKey;
+    private final KeyMapping moveDownKey;
+    private boolean moveUpKeyPressed = false;
+    private boolean moveDownKeyPressed = false;
+    private boolean moveUpKeyPressedLastTick = false;
+    private boolean moveDownKeyPressedLastTick = false;
 
-    private static KeyBinding moveDownKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-            "key.fastmove.down",
-            InputUtil.Type.KEYSYM,GLFW.GLFW_KEY_UNKNOWN,
-            "key.categories.movement"));
-    boolean moveUpKeyPressed = false;
-    boolean moveDownKeyPressed = false;
-    boolean moveUpKeyPressedLastTick = false;
-    boolean moveDownKeyPressedLastTick = false;
+    public FastMoveInput(KeyMapping moveUpKey, KeyMapping moveDownKey) {
+        this.moveUpKey = moveUpKey;
+        this.moveDownKey = moveDownKey;
+    }
 
-    public void onEndTick(MinecraftClient client) {
-        if (client.player != null) {
-            moveUpKeyPressedLastTick = moveUpKeyPressed;
-            moveDownKeyPressedLastTick = moveDownKeyPressed;
+    public void onEndTick(Minecraft client) {
+        LocalPlayer player = client.player;
+        if (player == null) {
+            return;
+        }
 
-            if (moveUpKey.isUnbound()) moveUpKeyPressed = client.player.input.jumping;
-            else {
-                moveUpKeyPressed = moveUpKey.isPressed();
-                while (moveUpKey.wasPressed()){
-                    moveUpKeyPressed = true;
-                }
+        moveUpKeyPressedLastTick = moveUpKeyPressed;
+        moveDownKeyPressedLastTick = moveDownKeyPressed;
+
+        if (!moveUpKey.isUnbound()) {
+            moveUpKeyPressed = moveUpKey.isDown();
+            while (moveUpKey.consumeClick()) {
+                moveUpKeyPressed = true;
             }
+        } else {
+            moveUpKeyPressed = player.input.jumping;
+        }
 
-            if (moveDownKey.isUnbound()) moveDownKeyPressed = client.player.input.sneaking;
-            else {
-                moveDownKeyPressed = moveDownKey.isPressed();
-                while (moveDownKey.wasPressed()){
-                    moveDownKeyPressed = true;
-                }
+        if (!moveDownKey.isUnbound()) {
+            moveDownKeyPressed = moveDownKey.isDown();
+            while (moveDownKey.consumeClick()) {
+                moveDownKeyPressed = true;
             }
+        } else {
+            moveDownKeyPressed = player.input.shiftKeyDown;
         }
     }
 
