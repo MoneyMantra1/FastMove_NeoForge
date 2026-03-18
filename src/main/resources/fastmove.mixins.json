@@ -2,15 +2,14 @@
   "required": true,
   "minVersion": "0.8",
   "package": "io.github.beeebea.fastmove.mixin",
-  "compatibilityLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "fastmove.refmap.json",
   "mixins": [
-    "PlayerEntityMixin",
-    "ServerPlayHandlerMixin"
+    "PlayerMixin",
+    "ServerGamePacketListenerImplMixin"
   ],
   "client": [
-    "AbstractClientPlayerEntityMixin"
-  ],
-  "server": [
+    "AbstractClientPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
